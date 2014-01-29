@@ -1,0 +1,127 @@
+* Gestión de paquetes
+
+Aún cuando la configuración por defecto de Emacs fuese expectacular,
+lo más probable es que en algún momento necesites extenderla ya sea
+porque Emacs no ofrezca soporte para ese lenguaje esotérico que
+utilizas o bien porque alguien ha desarrollado por su cuenta [[https://github.com/vibhavp/emacs-xkcd][algo que
+necesitas desesperadamente para vivir]].
+
+Desde Emacs24 se incluye por defecto el paquete ~package.el~ que viene
+siendo algo como lo que ~apt~ es para debian, ~pacman~ para archlinux
+y ~homebrew~ para osx.
+
+~package.el~ viene preparado para utilizar un repositorio de paquetes
+llamado [[http://elpa.gnu.org/][ELPA]] (Emacs Lisp Package Archive).
+
+Ejecuta ~M-x list-packages~ para ver un listado de los paquetes que
+puedes instalar desde ELPA o ~M-x package-install~ y el nombre del
+paquete para instalarlo directamente.
+
+Aparte de ELPA, existen otros dos repositorios que pueden utilizarse
+con ~package.el~:
+- [[http://melpa.milkbox.net/#/][MELPA]] (Milkypostman’s Emacs Lisp Package Archive)
+- [[http://marmalade-repo.org/][Marmalade]]
+
+Luego de utilizar este método por unos días te darás cuenta de que
+tiene una enorme deficiencia:
+
+/No hay ningún tipo de "log" de los paquetes que has instalado que
+puedas utilizar para reinstalar los mismos paquetes en una máquina
+nueva./
+
+La solución: Cask
+
+** Cask
+[[http://cask.github.io/][Cask]] es un gestor de paquetes para Emacs (entre otras cosas).
+Su objetivo es facilitar la gestión de paquetes que instales a través
+del gestor de paquetes de Emacs.
+
+*** Instalación en el sistema
+Para instalar Cask solo tenemos que ejecutar lo siguiente en un
+terminal:
+#+BEGIN_SRC sh
+  curl -fsSkL https://raw.github.com/cask/cask/master/go | python
+#+END_SRC
+
+Luego de eso debemos de tener el ejecutable ~cask~ en =~/.cask/bin=.
+
+*** Instalación en Emacs
+Para que Emacs sepa como cargar los paquetes instalados mediante Cask
+necesitamos esto justo en el principio de nuestra configuración antes
+de intentar hacer uso de los paquetes que hemos instalado con Cask:
+
+#+BEGIN_SRC elisp
+  (require 'cask "~/.cask/cask.el")
+  (cask-initialize)
+#+END_SRC
+
+*** El fichero ~Cask~
+La piedra angular de Cask es el archivo ~Cask~ que vive dentro de
+nuestro directorio ~emacs.d~ (si no existe lo creamos) y que no es más
+que el "log" que necesitábamos para llevar el inventario de nuestros
+paquetes, algo así como un ~requirements.txt~ en Python o un ~Gemfile~
+en Ruby:
+
+#+BEGIN_SRC elisp
+  (source org)
+  (source gnu)
+  (source melpa)
+  (source marmalade)
+  
+  (depends-on "multiple-cursors")
+  ;; ...
+#+END_SRC
+
+Aquí no estamos especificando ningún paquete a instalar aún, simplemente estamos
+especificando a qué repositorios de paquetes queremos tener acceso. Los que he
+puesto son lo más populares por lo que es probable que si el paquete que buscas
+no se encuentra en ninguno de ellos no se encuentre en ningún otro.
+
+*** El programa ~cask~
+El binario que tenemos instalado en =~/.cask/bin/cask= es el programa
+que vamos a utilizar para instalar/actualizar nuestros paquetes
+definidos en nuestro ficher ~Cask~:
+
+Instalar paquetes que no tengamos instalados:
+#+BEGIN_SRC sh
+  cd ~/.emacs.d
+  cask install
+#+END_SRC
+
+Actualizar todos los paquetes:
+#+BEGIN_SRC sh
+  cd ~/.emacs.d
+  cask update
+#+END_SRC
+
+*** El problema con Cask
+Existe un problema con Cask. Notarás que lo más común a la hora de
+instalar un paquete es:
+1. Ejecutar ~M-x list-packages~.
+2. Buscar el paquete y leer su descripción.
+3. Instalar el paquete.
+
+El problema radica en que dado que has instalado el paquete a través
+del gestor de paquetes y no del programa ~cask~ necesitas actualizar
+tu fichero ~Cask~ para que refleje la dependencia a dicho paquete.
+Haz esto más de tres veces y se convertirá en un coñazo.
+
+La solución: Pallet.
+
+** Pallet
+[[https://github.com/rdallasgray/pallet][Pallet]] es otro gestor de paquetes que utiliza Cask como plataforma y
+nos soluciona el problema de sincronización de nuestro fichero ~Cask~.
+
+Instala Pallet a través de =package.el=: ~M-x package-install<RET> pallet~.
+
+Una vez instalado tendrás acceso a los suigentes comandos:
+
+- ~pallet-init~: Crea tu Cask-file con todos los paquetes que has
+  instalado a través ~package~.
+- ~pallet-install~: Instala todos los paquetes declarados en tu Cask.
+- ~pallet-update~: Actualiza todos los paquetes declarados en tu Cask.
+
+Mejor aún, cada vez que instales un paquete a través de =package.el=
+Pallet añadirá ese paquete automáticamente como dependencia a tu
+archivo ~Cask~.
+
